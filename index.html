@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>点数集計</title>
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+    .font-mono {
+      font-family: 'Roboto Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const MahjongScoreTracker = () => {
+      // 初期状態の設定
+      const [players, setPlayers] = React.useState(['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4']);
+      const [rounds, setRounds] = React.useState([
+        { id: 1, scores: [0, 0, 0, 0] },
+        { id: 2, scores: [0, 0, 0, 0] }
+      ]);
+      const [editingName, setEditingName] = React.useState(null);
+      const [tempName, setTempName] = React.useState('');
+      const [currentDate, setCurrentDate] = React.useState('');
+
+      // 現在の日付を設定
+      React.useEffect(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        setCurrentDate(`${year}/${month}/${day}`);
+      }, []);
+
+      // 合計点の計算
+      const calculateTotals = () => {
+        return players.map((_, playerIndex) => {
+          return rounds.reduce((total, round) => {
+            return total + (round.scores[playerIndex] || 0);
+          }, 0);
+        });
+      };
+
+      // 名前編集モードの開始
+      const startEditName = (index) => {
+        setEditingName(index);
+        setTempName(players[index]);
+      };
+
+      // 名前の保存
+      const saveName = () => {
+        if (editingName !== null) {
+          const newPlayers = [...players];
+          newPlayers[editingName] = tempName;
+          setPlayers(newPlayers);
+          setEditingName(null);
+        }
+      };
+
+      // 点数の更新
+      const updateScore = (roundIndex, playerIndex, score) => {
+        const newRounds = [...rounds];
+        newRounds[roundIndex].scores[playerIndex] = score === '' ? 0 : parseInt(score);
+        setRounds(newRounds);
+      };
+
+      // ラウンドの合計を計算
+      const calculateRoundSum = (round) => {
+        return round.scores.reduce((sum, score) => sum + score, 0);
+      };
+      
+      // ラウンドの最高点と最低点のインデックスを取得
+      const getRankIndices = (round) => {
+        if (round.scores.every(score => score === 0)) {
+          return { highestIndex: -1, lowestIndex: -1 };
+        }
+        
+        let highestIndex = 0;
+        let lowestIndex = 0;
+        
+        for (let i = 1; i < round.scores.length; i++) {
+          if (round.scores[i] > round.scores[highestIndex]) {
+            highestIndex = i;
+          }
+          if (round.scores[i] < round.scores[lowestIndex]) {
+            lowestIndex = i;
+          }
+        }
+        
+        return { highestIndex, lowestIndex };
+      };
+
+      // 前の半荘がすべて入力されたら新しい半荘を自動追加
+      React.useEffect(() => {
+        // 最後の半荘の合計が0で、かつ点数が入力されている場合
+        const lastRound = rounds[rounds.length - 1];
+        const lastRoundSum = calculateRoundSum(lastRound);
+        const isLastRoundComplete = lastRoundSum === 0 && lastRound.scores.some(score => score !== 0);
+        
+        // すでに入力されている半荘がある場合、自動的に新しい半荘を追加
+        if (isLastRoundComplete) {
+          const newRound = {
+            id: rounds.length + 1,
+            scores: [0, 0, 0, 0]
+          };
+          setRounds([...rounds, newRound]);
+        }
+      }, [rounds]);
+
+      // 合計の取得
+      const totals = calculateTotals();
+
+      // インストール方法の表示状態
+      const [showInstallPrompt, setShowInstallPrompt] = React.useState(false);
+
+      return (
+        <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">点数集計</h1>
+            <div className="text-gray-600 text-lg">{currentDate}</div>
+          </div>
+          
+          <div className="overflow-x-auto rounded-lg shadow-xl">
+            <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="border-b border-gray-300 px-4 py-3 w-24 text-gray-700">半荘</th>
+                  {players.map((player, index) => (
+                    <th key={index} className="border-b border-gray-300 px-4 py-3 text-gray-700">
+                      {editingName === index ? (
+                        <div className="flex items-center">
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full text-gray-800"
+                            onBlur={saveName}
+                            onKeyPress={(e) => e.key === 'Enter' && saveName()}
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-center">
+                          <span>{player}</span>
+                          <button
+                            onClick={() => startEditName(index)}
+                            className="text-gray-500 hover:text-gray-700 ml-2 focus:outline-none"
+                          >
+                            編集
+                          </button>
+                        </div>
+                      )}
+                    </th>
+                  ))}
+                  <th className="border-b border-gray-300 px-4 py-3 text-gray-700 w-20">確認</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rounds.map((round, roundIndex) => {
+                  const roundSum = calculateRoundSum(round);
+                  const isValid = roundSum === 0;
+                  const { highestIndex, lowestIndex } = getRankIndices(round);
+                  
+                  return (
+                    <tr key={round.id} className={roundIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="border-b border-gray-300 px-4 py-3 text-center text-gray-700">{round.id}</td>
+                      {players.map((_, playerIndex) => (
+                        <td 
+                          key={playerIndex} 
+                          className={`border-b border-gray-300 px-2 py-2 ${
+                            playerIndex === highestIndex && round.scores[playerIndex] !== 0 
+                              ? 'bg-blue-50' 
+                              : playerIndex === lowestIndex && round.scores[playerIndex] !== 0
+                                ? 'bg-red-50'
+                                : ''
+                          }`}
+                        >
+                          <input
+                            type="number"
+                            value={round.scores[playerIndex] === 0 ? '' : round.scores[playerIndex]}
+                            onChange={(e) => updateScore(roundIndex, playerIndex, e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            className="w-full px-3 py-2 bg-transparent text-right focus:outline-none text-gray-800 text-lg"
+                            placeholder="0"
+                          />
+                        </td>
+                      ))}
+                      <td className="border-b border-gray-300 px-4 py-3 text-center">
+                        {round.scores.some(score => score !== 0) && (
+                          isValid 
+                            ? <span className="text-green-600 text-xl">✓</span>
+                            : <span className="text-red-600 font-semibold">{roundSum}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="bg-gray-200 font-bold">
+                  <td className="border-t border-gray-400 px-4 py-3 text-center text-gray-800">合計</td>
+                  {totals.map((total, index) => (
+                    <td key={index} className="border-t border-gray-400 px-4 py-3 text-right text-gray-800">{total}</td>
+                  ))}
+                  <td className="border-t border-gray-400 px-4 py-3"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-6 flex justify-between">
+            <button 
+              onClick={() => setShowInstallPrompt(!showInstallPrompt)} 
+              className="text-blue-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-blue-50"
+            >
+              ホーム画面に追加
+            </button>
+            <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow">
+              <span className="text-blue-600 font-medium">青色</span> = 1位 / <span className="text-red-600 font-medium">赤色</span> = 4位
+            </div>
+          </div>
+          
+          {showInstallPrompt && (
+            <div className="mt-4 bg-white p-4 rounded-lg shadow-lg">
+              <h3 className="font-bold text-lg mb-2">ホーム画面への追加方法:</h3>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Safari下部の「共有」ボタン(□↑)をタップ</li>
+                <li>「ホーム画面に追加」を選択</li>
+                <li>右上の「追加」をタップ</li>
+              </ol>
+              <p className="mt-2 text-sm text-gray-600">※これでアプリのようにホーム画面から起動できます</p>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.render(<MahjongScoreTracker />, document.getElementById('root'));
+  </script>
+</body>
+</html>
