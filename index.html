@@ -13,6 +13,12 @@
     .font-mono {
       font-family: 'Roboto Mono', monospace;
     }
+    /* iOSの入力フィールドのデフォルトスタイルを無効化 */
+    input[type="number"] {
+      -webkit-appearance: none;
+      margin: 0;
+      -moz-appearance: textfield;
+    }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -29,6 +35,26 @@
       const [editingName, setEditingName] = React.useState(null);
       const [tempName, setTempName] = React.useState('');
       const [currentDate, setCurrentDate] = React.useState('');
+
+      // localStorageからデータを読み込む
+      React.useEffect(() => {
+        const savedPlayers = localStorage.getItem('mahjongPlayers');
+        const savedRounds = localStorage.getItem('mahjongRounds');
+        
+        if (savedPlayers) {
+          setPlayers(JSON.parse(savedPlayers));
+        }
+        
+        if (savedRounds) {
+          setRounds(JSON.parse(savedRounds));
+        }
+      }, []);
+
+      // データに変更があればlocalStorageに保存
+      React.useEffect(() => {
+        localStorage.setItem('mahjongPlayers', JSON.stringify(players));
+        localStorage.setItem('mahjongRounds', JSON.stringify(rounds));
+      }, [players, rounds]);
 
       // 現在の日付を設定
       React.useEffect(() => {
@@ -120,6 +146,19 @@
       // インストール方法の表示状態
       const [showInstallPrompt, setShowInstallPrompt] = React.useState(false);
 
+      // データのリセット
+      const resetData = () => {
+        if (window.confirm('全てのデータをリセットしますか？この操作は元に戻せません。')) {
+          setPlayers(['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4']);
+          setRounds([
+            { id: 1, scores: [0, 0, 0, 0] },
+            { id: 2, scores: [0, 0, 0, 0] }
+          ]);
+          localStorage.removeItem('mahjongPlayers');
+          localStorage.removeItem('mahjongRounds');
+        }
+      };
+
       return (
         <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono">
           <div className="flex justify-between items-center mb-6">
@@ -134,29 +173,15 @@
                   <th className="border-b border-gray-300 px-4 py-3 w-24 text-gray-700">半荘</th>
                   {players.map((player, index) => (
                     <th key={index} className="border-b border-gray-300 px-4 py-3 text-gray-700">
-                      {editingName === index ? (
-                        <div className="flex items-center">
-                          <input
-                            type="text"
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="bg-gray-100 border border-gray-300 rounded px-2 py-1 w-full text-gray-800"
-                            onBlur={saveName}
-                            onKeyPress={(e) => e.key === 'Enter' && saveName()}
-                            autoFocus
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex justify-between items-center">
-                          <span>{player}</span>
-                          <button
-                            onClick={() => startEditName(index)}
-                            className="text-gray-500 hover:text-gray-700 ml-2 focus:outline-none"
-                          >
-                            編集
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center">
+                        <span>{player}</span>
+                        <button
+                          onClick={() => startEditName(index)}
+                          className="text-gray-500 hover:text-gray-700 ml-2 focus:outline-none"
+                        >
+                          編集
+                        </button>
+                      </div>
                     </th>
                   ))}
                   <th className="border-b border-gray-300 px-4 py-3 text-gray-700 w-20">確認</th>
@@ -213,13 +238,21 @@
             </table>
           </div>
           
-          <div className="mt-6 flex justify-between">
-            <button 
-              onClick={() => setShowInstallPrompt(!showInstallPrompt)} 
-              className="text-blue-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-blue-50"
-            >
-              ホーム画面に追加
-            </button>
+          <div className="mt-6 flex justify-between flex-wrap gap-2">
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => setShowInstallPrompt(!showInstallPrompt)} 
+                className="text-blue-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-blue-50"
+              >
+                ホーム画面に追加
+              </button>
+              <button 
+                onClick={resetData} 
+                className="text-red-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-red-50"
+              >
+                リセット
+              </button>
+            </div>
             <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow">
               <span className="text-blue-600 font-medium">青色</span> = 1位 / <span className="text-red-600 font-medium">赤色</span> = 4位
             </div>
@@ -234,6 +267,36 @@
                 <li>右上の「追加」をタップ</li>
               </ol>
               <p className="mt-2 text-sm text-gray-600">※これでアプリのようにホーム画面から起動できます</p>
+            </div>
+          )}
+          
+          {/* 名前編集モーダル */}
+          {editingName !== null && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingName(null)}>
+              <div className="bg-white p-4 rounded-lg shadow-lg w-4/5 max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-bold mb-3">プレイヤー名の編集</h3>
+                <input
+                  type="text"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-lg"
+                  autoFocus
+                />
+                <div className="flex justify-end space-x-2">
+                  <button 
+                    onClick={() => setEditingName(null)} 
+                    className="px-4 py-2 bg-gray-200 rounded"
+                  >
+                    キャンセル
+                  </button>
+                  <button 
+                    onClick={saveName} 
+                    className="px-4 py-2 bg-blue-500 text-white rounded"
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
