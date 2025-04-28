@@ -7,6 +7,7 @@
   <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
@@ -57,6 +58,42 @@
       const [editingName, setEditingName] = React.useState(null);
       const [tempName, setTempName] = React.useState('');
       const [currentDate, setCurrentDate] = React.useState('');
+      const [isCapturing, setIsCapturing] = React.useState(false);
+      
+      // コンテナへの参照
+      const scoreTableRef = React.useRef(null);
+
+      // キャプチャとダウンロード機能
+      const captureTable = () => {
+        if (!scoreTableRef.current) return;
+        
+        setIsCapturing(true);
+        
+        // キャプチャ時にスクロールバーを一時的に非表示
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        
+        html2canvas(scoreTableRef.current, {
+          backgroundColor: '#f3f4f6', // bg-gray-100
+          scale: 2, // 高解像度
+          logging: false,
+          useCORS: true
+        }).then(canvas => {
+          // 元のスクロール状態に戻す
+          document.body.style.overflow = originalOverflow;
+          
+          // キャンバスを画像に変換
+          const image = canvas.toDataURL('image/png');
+          
+          // ダウンロードリンクを作成
+          const link = document.createElement('a');
+          link.href = image;
+          link.download = `麻雀点数表_${currentDate}.png`;
+          link.click();
+          
+          setIsCapturing(false);
+        });
+      };
 
       // localStorageからデータを読み込む
       React.useEffect(() => {
@@ -182,7 +219,7 @@
       };
 
       return (
-        <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono">
+        <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono" ref={scoreTableRef}>
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">点数集計</h1>
             <div className="text-gray-600 text-base sm:text-lg">{currentDate}</div>
@@ -262,8 +299,8 @@
             </div>
           </div>
           
-          <div className="mt-6 flex justify-between flex-wrap gap-2">
-            <div className="flex space-x-2">
+          <div className="mt-6 flex flex-wrap gap-2 justify-between">
+            <div className="flex flex-wrap gap-2">
               <button 
                 onClick={() => setShowInstallPrompt(!showInstallPrompt)} 
                 className="text-blue-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-blue-50 text-sm sm:text-base"
@@ -275,6 +312,13 @@
                 className="text-red-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-red-50 text-sm sm:text-base"
               >
                 リセット
+              </button>
+              <button 
+                onClick={captureTable}
+                disabled={isCapturing}
+                className={`bg-white px-3 sm:px-4 py-2 rounded-lg shadow text-sm sm:text-base ${isCapturing ? 'text-gray-400' : 'text-green-600 hover:bg-green-50'}`}
+              >
+                {isCapturing ? '処理中...' : '画像保存'}
               </button>
             </div>
             <div className="text-xs sm:text-sm text-gray-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow">
