@@ -19,6 +19,28 @@
       margin: 0;
       -moz-appearance: textfield;
     }
+    /* 固定ヘッダー用のスタイル */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    /* モバイル最適化 */
+    @media (max-width: 640px) {
+      .mobile-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .mobile-input {
+        min-width: 60px;
+        width: 100%;
+      }
+      .table-container {
+        max-width: 100vw;
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -162,98 +184,100 @@
       return (
         <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">点数集計</h1>
-            <div className="text-gray-600 text-lg">{currentDate}</div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">点数集計</h1>
+            <div className="text-gray-600 text-base sm:text-lg">{currentDate}</div>
           </div>
           
-          <div className="overflow-x-auto rounded-lg shadow-xl">
-            <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border-b border-gray-300 px-4 py-3 w-24 text-gray-700">半荘</th>
-                  {players.map((player, index) => (
-                    <th key={index} className="border-b border-gray-300 px-4 py-3 text-gray-700">
-                      <div className="flex justify-between items-center">
-                        <span>{player}</span>
-                        <button
-                          onClick={() => startEditName(index)}
-                          className="text-gray-500 hover:text-gray-700 ml-2 focus:outline-none"
-                        >
-                          編集
-                        </button>
-                      </div>
-                    </th>
-                  ))}
-                  <th className="border-b border-gray-300 px-4 py-3 text-gray-700 w-20">確認</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rounds.map((round, roundIndex) => {
-                  const roundSum = calculateRoundSum(round);
-                  const isValid = roundSum === 0;
-                  const { highestIndex, lowestIndex } = getRankIndices(round);
-                  
-                  return (
-                    <tr key={round.id} className={roundIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="border-b border-gray-300 px-4 py-3 text-center text-gray-700">{round.id}</td>
-                      {players.map((_, playerIndex) => (
-                        <td 
-                          key={playerIndex} 
-                          className={`border-b border-gray-300 px-2 py-2 ${
-                            playerIndex === highestIndex && round.scores[playerIndex] !== 0 
-                              ? 'bg-blue-50' 
-                              : playerIndex === lowestIndex && round.scores[playerIndex] !== 0
-                                ? 'bg-red-50'
-                                : ''
-                          }`}
-                        >
-                          <input
-                            type="number"
-                            value={round.scores[playerIndex] === 0 ? '' : round.scores[playerIndex]}
-                            onChange={(e) => updateScore(roundIndex, playerIndex, e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            className="w-full px-3 py-2 bg-transparent text-right focus:outline-none text-gray-800 text-lg"
-                            placeholder="0"
-                          />
+          <div className="table-container overflow-hidden rounded-lg shadow-xl">
+            <div className="mobile-table">
+              <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
+                <thead>
+                  <tr className="bg-gray-200 sticky-header">
+                    <th className="border-b border-gray-300 px-2 sm:px-4 py-3 w-16 sm:w-24 text-gray-700">半荘</th>
+                    {players.map((player, index) => (
+                      <th key={index} className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700">
+                        <div className="flex justify-between items-center">
+                          <span className="truncate">{player}</span>
+                          <button
+                            onClick={() => startEditName(index)}
+                            className="text-gray-500 hover:text-gray-700 ml-1 sm:ml-2 focus:outline-none"
+                          >
+                            編集
+                          </button>
+                        </div>
+                      </th>
+                    ))}
+                    <th className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700 w-16 sm:w-20">確認</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rounds.map((round, roundIndex) => {
+                    const roundSum = calculateRoundSum(round);
+                    const isValid = roundSum === 0;
+                    const { highestIndex, lowestIndex } = getRankIndices(round);
+                    
+                    return (
+                      <tr key={round.id} className={roundIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="border-b border-gray-300 px-2 sm:px-4 py-2 text-center text-gray-700">{round.id}</td>
+                        {players.map((_, playerIndex) => (
+                          <td 
+                            key={playerIndex} 
+                            className={`border-b border-gray-300 px-1 sm:px-2 py-2 ${
+                              playerIndex === highestIndex && round.scores[playerIndex] !== 0 
+                                ? 'bg-blue-50' 
+                                : playerIndex === lowestIndex && round.scores[playerIndex] !== 0
+                                  ? 'bg-red-50'
+                                  : ''
+                            }`}
+                          >
+                            <input
+                              type="number"
+                              value={round.scores[playerIndex] === 0 ? '' : round.scores[playerIndex]}
+                              onChange={(e) => updateScore(roundIndex, playerIndex, e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              className="mobile-input w-full px-1 sm:px-3 py-2 bg-transparent text-right focus:outline-none text-gray-800 text-base sm:text-lg"
+                              placeholder="0"
+                            />
+                          </td>
+                        ))}
+                        <td className="border-b border-gray-300 px-2 sm:px-4 py-2 text-center">
+                          {round.scores.some(score => score !== 0) && (
+                            isValid 
+                              ? <span className="text-green-600 text-xl">✓</span>
+                              : <span className="text-red-600 font-semibold">{roundSum}</span>
+                          )}
                         </td>
-                      ))}
-                      <td className="border-b border-gray-300 px-4 py-3 text-center">
-                        {round.scores.some(score => score !== 0) && (
-                          isValid 
-                            ? <span className="text-green-600 text-xl">✓</span>
-                            : <span className="text-red-600 font-semibold">{roundSum}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                <tr className="bg-gray-200 font-bold">
-                  <td className="border-t border-gray-400 px-4 py-3 text-center text-gray-800">合計</td>
-                  {totals.map((total, index) => (
-                    <td key={index} className="border-t border-gray-400 px-4 py-3 text-right text-gray-800">{total}</td>
-                  ))}
-                  <td className="border-t border-gray-400 px-4 py-3"></td>
-                </tr>
-              </tbody>
-            </table>
+                      </tr>
+                    );
+                  })}
+                  <tr className="bg-gray-200 font-bold">
+                    <td className="border-t border-gray-400 px-2 sm:px-4 py-3 text-center text-gray-800">合計</td>
+                    {totals.map((total, index) => (
+                      <td key={index} className="border-t border-gray-400 px-2 sm:px-4 py-3 text-right text-gray-800">{total}</td>
+                    ))}
+                    <td className="border-t border-gray-400 px-2 sm:px-4 py-3"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           
           <div className="mt-6 flex justify-between flex-wrap gap-2">
             <div className="flex space-x-2">
               <button 
                 onClick={() => setShowInstallPrompt(!showInstallPrompt)} 
-                className="text-blue-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-blue-50"
+                className="text-blue-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-blue-50 text-sm sm:text-base"
               >
                 ホーム画面に追加
               </button>
               <button 
                 onClick={resetData} 
-                className="text-red-600 bg-white px-4 py-2 rounded-lg shadow hover:bg-red-50"
+                className="text-red-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow hover:bg-red-50 text-sm sm:text-base"
               >
                 リセット
               </button>
             </div>
-            <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow">
+            <div className="text-xs sm:text-sm text-gray-600 bg-white px-3 sm:px-4 py-2 rounded-lg shadow">
               <span className="text-blue-600 font-medium">青色</span> = 1位 / <span className="text-red-600 font-medium">赤色</span> = 4位
             </div>
           </div>
