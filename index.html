@@ -26,6 +26,12 @@
       top: 0;
       z-index: 10;
     }
+    /* 固定フッター用のスタイル */
+    .sticky-footer {
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
     /* モバイル最適化 */
     @media (max-width: 640px) {
       .mobile-table {
@@ -218,6 +224,29 @@
         }
       };
 
+      // プレイヤーヘッダーコンポーネント（共通化）
+      const PlayerHeader = ({ isSticky, stickyClass }) => (
+        <tr className={`bg-gray-200 ${stickyClass}`}>
+          <th className="border-b border-gray-300 px-2 sm:px-4 py-3 w-16 sm:w-24 text-gray-700">半荘</th>
+          {players.map((player, index) => (
+            <th key={index} className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700">
+              <div className="flex justify-between items-center">
+                <span className="truncate">{player}</span>
+                {isSticky && (
+                  <button
+                    onClick={() => startEditName(index)}
+                    className="text-gray-500 hover:text-gray-700 ml-1 sm:ml-2 focus:outline-none"
+                  >
+                    編集
+                  </button>
+                )}
+              </div>
+            </th>
+          ))}
+          <th className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700 w-16 sm:w-20">確認</th>
+        </tr>
+      );
+
       return (
         <div className="p-4 max-w-4xl mx-auto bg-gray-100 min-h-screen font-mono" ref={scoreTableRef}>
           <div className="flex justify-between items-center mb-6">
@@ -229,23 +258,7 @@
             <div className="mobile-table">
               <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
                 <thead>
-                  <tr className="bg-gray-200 sticky-header">
-                    <th className="border-b border-gray-300 px-2 sm:px-4 py-3 w-16 sm:w-24 text-gray-700">半荘</th>
-                    {players.map((player, index) => (
-                      <th key={index} className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700">
-                        <div className="flex justify-between items-center">
-                          <span className="truncate">{player}</span>
-                          <button
-                            onClick={() => startEditName(index)}
-                            className="text-gray-500 hover:text-gray-700 ml-1 sm:ml-2 focus:outline-none"
-                          >
-                            編集
-                          </button>
-                        </div>
-                      </th>
-                    ))}
-                    <th className="border-b border-gray-300 px-2 sm:px-4 py-3 text-gray-700 w-16 sm:w-20">確認</th>
-                  </tr>
+                  <PlayerHeader isSticky={true} stickyClass="sticky-header" />
                 </thead>
                 <tbody>
                   {rounds.map((round, roundIndex) => {
@@ -294,6 +307,9 @@
                     ))}
                     <td className="border-t border-gray-400 px-2 sm:px-4 py-3"></td>
                   </tr>
+                  
+                  {/* 下部プレイヤー名行 */}
+                  <PlayerHeader isSticky={false} stickyClass="sticky-footer" />
                 </tbody>
               </table>
             </div>
